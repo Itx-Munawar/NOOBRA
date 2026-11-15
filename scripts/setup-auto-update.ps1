@@ -31,6 +31,24 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+# A scheduled task on a ZIP extract would fail every 30 minutes in silence.
+# Refuse the setup and explain how to convert the folder instead.
+git -C $NoobraDir rev-parse --is-inside-work-tree 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Error @"
+'$NoobraDir' is not a Git clone, so update.bat can never pull anything.
+
+Fix it once:
+  1. In the PARENT folder:  git clone https://github.com/Itx-Munawar/NOOBRA.git NOOBRA-new
+  2. Copy your .env into NOOBRA-new\
+  3. Run setup.bat inside NOOBRA-new\
+  4. Run this script again from inside NOOBRA-new\
+
+Then use NOOBRA-new from now on (and set your shortcuts to it).
+"@
+    exit 1
+}
+
 # schtasks needs the command quoted because the path can contain spaces.
 $TaskCommand = "`"$UpdateBat`" --silent"
 
@@ -43,6 +61,13 @@ Write-Host ""
 schtasks /Create /TN $TaskName /TR $TaskCommand /SC MINUTE /MO 30 /F
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Could not create the scheduled task (schtasks exit code $LASTEXITCODE). Try running PowerShell as Administrator."
+    exit 1
+}
+
+# Confirm the task really exists before telling the user it is on.
+schtasks /Query /TN $TaskName | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "The task was reported as created but cannot be queried. Open Task Scheduler and check '$TaskName'."
     exit 1
 }
 
