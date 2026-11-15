@@ -27,12 +27,35 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM This folder must be a Git clone. A ZIP extract has no .git, and
+REM "git pull" there fails with a confusing message - say it plainly
+REM instead of scheduling/looping a task that can never work.
+git rev-parse --is-inside-work-tree >nul 2>&1
+if errorlevel 1 (
+    echo This folder is not a Git clone, so it cannot auto-update.
+    echo.
+    echo Fix it once:
+    echo   1. Clone the repo next to this folder:
+    echo        git clone https://github.com/Itx-Munawar/NOOBRA.git NOOBRA-new
+    echo   2. Copy your .env into NOOBRA-new\
+    echo   3. Run setup.bat inside NOOBRA-new\
+    echo   4. Use that folder from now on.
+    if not "%~1"=="--silent" pause
+    exit /b 1
+)
+
 echo Updating NOOBRA from GitHub...
-git pull origin main
+REM --ff-only refuses to create a merge commit; if it fails, the folder has
+REM local edits or diverged history and needs attention, not a silent pull.
+git pull --ff-only origin main
 if errorlevel 1 (
     echo.
-    echo Update failed. Check your internet connection and your GitHub
-    echo login (run "gh auth login" or check Windows Credential Manager).
+    echo Update failed. Usual causes:
+    echo   - No internet connection
+    echo   - You edited files in this folder ^(commit or discard them^):
+    echo       git status
+    echo       git checkout -- .
+    echo   - GitHub asked for a login: run "gh auth login"
     if not "%~1"=="--silent" pause
     exit /b 1
 )
