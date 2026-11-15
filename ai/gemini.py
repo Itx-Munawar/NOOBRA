@@ -1,7 +1,7 @@
 """Google Gemini provider (primary, free tier).
 
 Uses the Gemini REST API directly via :mod:`requests` -- no Google SDK
-needed. Model defaults to ``gemini-2.0-flash`` (free), configurable via
+needed. Model defaults to ``gemini-3.8-flash`` (free), configurable via
 ``Settings.gemini_model`` / ``GEMINI_MODEL``.
 """
 
@@ -29,7 +29,7 @@ class GeminiProvider(BaseProvider):
     """Gemini provider via ``generativelanguage.googleapis.com``."""
 
     name = "gemini"
-    model = "gemini-2.0-flash"
+    model = "gemini-3.8-flash"
 
     def chat(
         self,

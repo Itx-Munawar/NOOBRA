@@ -57,8 +57,8 @@ class Settings:
     """All user-configurable NOOBRA settings."""
 
     provider: str = "gemini"
-    gemini_model: str = "gemini-2.0-flash"
-    groq_model: str = "llama-3.3-70b-versatile"
+    gemini_model: str = "gemini-3.8-flash"
+    groq_model: str = "openai/gpt-oss-20b"
     openrouter_model: str = "openai/gpt-oss-20b:free"
     gemini_api_key: str = ""
     groq_api_key: str = ""

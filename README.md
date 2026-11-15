@@ -3,7 +3,7 @@
 NOOBRA is a friendly Windows 11 desktop AI agent. It understands
 **Roman Urdu + English**, opens apps, manages files, searches the web,
 and remembers your preferences — using free-tier AI only
-(Gemini `gemini-2.0-flash`, Groq `llama-3.3-70b-versatile`, optional
+(Gemini `gemini-3.8-flash`, Groq `openai/gpt-oss-20b`, optional
 OpenRouter). No Ollama, no local LLM, no paid APIs.
 
 > Assalam-o-Alaikum! Main NOOBRA hoon — aapka personal AI agent. 😊

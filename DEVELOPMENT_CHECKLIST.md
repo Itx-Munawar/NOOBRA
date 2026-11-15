@@ -72,3 +72,22 @@ pyinstaller noobra.spec
   planner's rule-based fallback is what was exercised end to end.
 - `noobra.spec` was syntax-checked only; the `.exe` has not been built
   (PyInstaller build must run on Windows).
+
+## Model fix (2026-11-15, after Windows test)
+
+- Gemini `gemini-2.0-flash` returned HTTP 404 on Windows: "no longer
+  available, use models/gemini-3.8-flash". Updated default to
+  `gemini-3.8-flash` (GA Sep 2, 2026) in `ai/gemini.py`, `core/config.py`,
+  `ui/settings.py`, `.env.example`, `README.md`.
+- Groq `llama-3.3-70b-versatile` returned HTTP 404 / model_not_found.
+  Groq moved both Llama models to Enterprise on Aug 16, 2026; free tier
+  now includes `openai/gpt-oss-20b`. Updated Groq default to
+  `openai/gpt-oss-20b` in `ai/groq.py`, `core/config.py`,
+  `ui/settings.py`, `.env.example`, `README.md`.
+- OpenRouter 401 "User not found" is a key problem, not a model problem:
+  the key in the user's `.env` is invalid. Get a fresh key at
+  https://openrouter.ai/keys, or leave OpenRouter blank and use Gemini/Groq.
+- IMPORTANT for existing installs: `.env` overrides code defaults. Users
+  with an old `.env` must edit `GEMINI_MODEL=` and `GROQ_MODEL=` in
+  `.env` to the new names above (or delete those two lines so the new
+  defaults apply).

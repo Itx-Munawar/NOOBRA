@@ -1,7 +1,7 @@
 """Groq provider (secondary, free tier).
 
 OpenAI-compatible chat-completions endpoint. Model defaults to
-``llama-3.3-70b-versatile``, configurable via ``Settings.groq_model`` /
+``openai/gpt-oss-20b``, configurable via ``Settings.groq_model`` /
 ``GROQ_MODEL``.
 """
 
@@ -30,7 +30,7 @@ class GroqProvider(BaseProvider):
     """Groq provider via its OpenAI-compatible endpoint."""
 
     name = "groq"
-    model = "llama-3.3-70b-versatile"
+    model = "openai/gpt-oss-20b"
 
     def chat(
         self,

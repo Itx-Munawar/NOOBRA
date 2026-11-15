@@ -26,8 +26,8 @@ KEY_PLACEHOLDER = "from .env — leave blank to use env"
 
 _DEFAULTS = {
     "provider": "gemini",
-    "gemini_model": "gemini-2.0-flash",
-    "groq_model": "llama-3.3-70b-versatile",
+    "gemini_model": "gemini-3.8-flash",
+    "groq_model": "openai/gpt-oss-20b",
     "openrouter_model": "openai/gpt-oss-20b:free",
     "voice_enabled": True,
     "memory_enabled": True,
