@@ -60,6 +60,26 @@ OpenRouter). No Ollama, no local LLM, no paid APIs.
 - **CLI mode:** `python main.py --cli` — type commands, `exit` to quit.
 - **One shot:** `python main.py --text "Chrome kholo"`
 
+## Keeping NOOBRA up to date
+
+When a new fix is pushed to GitHub, update your PC copy like this:
+
+**Manual (any time):** double-click `update.bat` in the NOOBRA folder,
+or run `git pull` there. Restart NOOBRA afterwards to use the new code.
+
+**Automatic (set up once):** in PowerShell, inside the NOOBRA folder:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-auto-update.ps1
+```
+This creates a Task Scheduler task ("NOOBRA Auto-Update") that runs
+`update.bat` every 30 minutes while you are logged in. Remove it with:
+`schtasks /Delete /TN "NOOBRA Auto-Update" /F`
+
+Note: `update.bat` only works if the folder is a real Git clone, not a
+ZIP extract. If it says "not a git repository", clone it once with
+`gh auth login` then `gh repo clone Itx-Munawar/NOOBRA` (copy your
+`.env` into the new folder first), and use that folder from then on.
+
 ## Build the .exe (Windows)
 
 ```powershell

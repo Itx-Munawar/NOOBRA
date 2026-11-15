@@ -126,3 +126,14 @@ pyinstaller noobra.spec
      falling back to subprocess on failure. Later searches reuse that
      same visible window.
 - Pinned by `tests/test_browser_visible.py` (3 new tests; 44 passed total).
+
+## Auto-update script (2026-11-15)
+
+- User asked: sync GitHub -> PC automatically when a fix is pushed.
+- Added `update.bat` (double-click = `git pull origin main`, `--silent`
+  for Task Scheduler, never touches .env) and
+  `scripts/setup-auto-update.ps1` (creates a "NOOBRA Auto-Update"
+  Task Scheduler task, every 30 minutes while logged in).
+- README has a "Keeping NOOBRA up to date" section. True instant
+  push-triggering is not used: GitHub cannot reach a home PC directly,
+  so scheduled pull is the standard approach.
