@@ -91,3 +91,22 @@ pyinstaller noobra.spec
   with an old `.env` must edit `GEMINI_MODEL=` and `GROQ_MODEL=` in
   `.env` to the new names above (or delete those two lines so the new
   defaults apply).
+
+## open_app bug fix (2026-11-15, after Windows Chrome test)
+
+- LLM plan returned `open_app` with `{"app_name": "chrome"}`. The
+  executor's old TypeError fallback called `open_app({"app_name":
+  "chrome"})` positionally, so the app name became a dict and launch
+  failed with `unknown app: {'app_name': 'chrome'}` even though
+  'chrome' is known. Fixed at three layers:
+  1. `tools/applications.py`: `launch_app`/`open_app`/`close_app`/
+     `is_app_running` accept `app_name`/`app`/`application` aliases and
+     unwrap dict/list names; "Google Chrome" -> "chrome", "vs code" -> "vscode".
+  2. `core/executor.py`: `_normalize_args` maps aliases and unwraps
+     dict values; `_call_tool` now filters kwargs by signature instead
+     of passing the whole args dict positionally.
+  3. `core/planner.py`: `_plan_from_llm_data` normalises LLM args the
+     same way.
+- Also raised `REQUEST_TIMEOUT` 30s -> 60s in `ai/provider.py`: Gemini
+  timed out at 30s on the user's connection.
+- Pinned by `tests/test_app_alias.py` (5 new tests; 41 passed total).

@@ -94,7 +94,7 @@ class Executor:
     # -- one step ---------------------------------------------------------
     def _run_step(self, step, registry, context):
         tool_name = str(getattr(step, "tool", "") or "").strip()
-        args = dict(getattr(step, "args", None) or {})
+        args = self._normalize_args(tool_name, dict(getattr(step, "args", None) or {}))
         if not tool_name:
             return self._result(step, False, None, "Plan step has no tool name", False)
 
@@ -165,6 +165,39 @@ class Executor:
         return bool(getattr(step, "approved", False) or (getattr(step, "args", None) or {}).get("approved"))
 
     @staticmethod
+    def _normalize_args(tool_name, args):
+        """Map common LLM arg aliases to the schema names, unwrapping dicts.
+
+        LLMs often say ``app_name`` where the schema says ``name``, or
+        ``source``/``destination`` where a file tool says ``src``/``dst``.
+        Normalise here (and in the planner) instead of failing the step.
+        """
+        out = dict(args or {})
+        # Unwrap a dict-valued argument, e.g. name={"app_name": "chrome"}.
+        for key, value in list(out.items()):
+            if isinstance(value, dict):
+                for sub in ("app_name", "name", "app", "value", "target"):
+                    if sub in value and isinstance(value[sub], str):
+                        out[key] = value[sub]
+                        break
+                else:
+                    first = next((v for v in value.values() if isinstance(v, str)), None)
+                    if first is not None:
+                        out[key] = first
+        aliases = {
+            "app_name": "name", "app": "name", "application": "name",
+            "source": "src", "destination": "dst",
+            "source_path": "src", "destination_path": "dst",
+            "file": "path", "folder": "path", "filename": "path",
+        }
+        for alias, canonical in aliases.items():
+            if alias in out and canonical not in out:
+                out[canonical] = out.pop(alias)
+            elif alias in out:
+                out.pop(alias, None)
+        return out
+
+    @staticmethod
     def _call_tool(handler, tool_name, args):
         """Call a registry entry, whatever shape it has."""
         target = handler
@@ -176,12 +209,22 @@ class Executor:
             target = handler.run
         if not callable(target):
             raise TypeError(f"Tool '{tool_name}' has no callable handler")
+        # Never pass a whole args dict as a positional argument: that turned
+        # {"app_name": "chrome"} into a dict app name and produced the
+        # misleading "unknown app: {'app_name': 'chrome'}" error.
+        # Instead, filter kwargs to what the callable accepts.
         try:
-            return target(**args)
-        except TypeError:
-            # Some tools take a single args dict, or no arguments at all.
+            import inspect
+            sig = inspect.signature(target)
+            params = sig.parameters
+            if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+                return target(**args)
+            accepted = {k: v for k, v in args.items() if k in params}
+            return target(**accepted)
+        except (TypeError, ValueError):
+            # inspect failed (built-in / C function): try kwargs, then no-args.
             try:
-                return target(args)
+                return target(**args)
             except TypeError:
                 return target()
 

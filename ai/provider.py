@@ -1,7 +1,7 @@
 """Provider-independent LLM interface for NOOBRA.
 
 Every provider (Gemini / Groq / OpenRouter) implements :class:`BaseProvider`
-over plain HTTPS via :mod:`requests` (``timeout=30``). No provider SDK is
+over plain HTTPS via :mod:`requests` (``timeout=60``). No provider SDK is
 required, and no API key is ever hardcoded -- keys come from
 :class:`~core.config.Settings` (environment variables).
 """
@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger("noobra.ai.provider")
 
-REQUEST_TIMEOUT = 30
+REQUEST_TIMEOUT = 60  # seconds; Gemini timed out at 30s on a slow connection (2026-11-15)
 
 
 class ProviderError(Exception):

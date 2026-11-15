@@ -109,8 +109,52 @@ def _fail(error, result=None):
     return {"success": False, "result": result, "error": str(error), "verified": False}
 
 
+def _extract_name(value):
+    """Unwrap an app name that arrived as a dict/list/alias.
+
+    LLMs sometimes return ``{"app_name": "chrome"}`` as the *value* of a
+    ``name`` argument, or call the tool with ``app_name=`` instead of
+    ``name=``. Never stringify a dict into a lookup key — extract the
+    first string inside it instead.
+    """
+    if isinstance(value, dict):
+        for key in ("app_name", "name", "app", "application", "target", "value"):
+            if key in value and isinstance(value[key], str) and value[key].strip():
+                return value[key]
+        for v in value.values():
+            if isinstance(v, str) and v.strip():
+                return v
+            if isinstance(v, (list, tuple)) and v and isinstance(v[0], str):
+                return v[0]
+        return ""
+    if isinstance(value, (list, tuple)):
+        return str(value[0]) if value else ""
+    return "" if value is None else str(value)
+
+
 def _norm(name: str) -> str:
-    return str(name).strip().lower().replace(" ", "").replace("_", "")
+    name = _extract_name(name)
+    key = name.strip().lower().replace(" ", "").replace("_", "")
+    # Friendly names -> canonical keys.
+    return {
+        "googlechrome": "chrome",
+        "vscode": "vscode",
+        "visualstudiocode": "vscode",
+        "visualstudiocode": "vscode",
+    }.get(key, key)
+
+
+def _resolve_name(name=None, app=None, app_name=None, application=None, kwargs=None):
+    """Pick the app name from any accepted alias, unwrapping dicts."""
+    kwargs = kwargs or {}
+    for candidate in (name, app, app_name, application,
+                      kwargs.get("app_name"), kwargs.get("app"),
+                      kwargs.get("application"), kwargs.get("target"),
+                      kwargs.get("name")):
+        extracted = _extract_name(candidate)
+        if extracted.strip():
+            return extracted
+    return None
 
 
 def _find_windows_exe(entry: dict):
@@ -155,9 +199,8 @@ def _ancestor_pids() -> set:
     return ancestors
 
 
-def is_app_running(name=None, app=None):
-    if name is None:
-        name = app
+def is_app_running(name=None, app=None, app_name=None, application=None, **kwargs):
+    name = _resolve_name(name, app, app_name, application, kwargs)
     """Return ``{"running": bool, "pids": [...]}`` for an app/process name."""
     key = _norm(name)
     entry = APP_MAP.get(key)
@@ -215,9 +258,8 @@ def is_app_running(name=None, app=None):
     return _ok({"running": bool(pids), "pids": pids, "app": str(name)}, verified=True)
 
 
-def launch_app(name=None, args=None, app=None):
-    if name is None:
-        name = app
+def launch_app(name=None, args=None, app=None, app_name=None, application=None, **kwargs):
+    name = _resolve_name(name, app, app_name, application, kwargs)
     """Launch an app by canonical name (see ``APP_MAP``) or executable/path.
 
     On Windows uses ``subprocess.Popen`` / ``os.startfile`` for ms-settings: URIs;
@@ -312,16 +354,14 @@ def launch_app(name=None, args=None, app=None):
                verified=verified)
 
 
-def open_app(name=None, args=None, app=None):
-    if name is None:
-        name = app
+def open_app(name=None, args=None, app=None, app_name=None, application=None, **kwargs):
+    name = _resolve_name(name, app, app_name, application, kwargs)
     """Alias for :func:`launch_app` used by the planner / tool registry."""
     return launch_app(name, args=args)
 
 
-def close_app(name=None, app=None):
-    if name is None:
-        name = app
+def close_app(name=None, app=None, app_name=None, application=None, **kwargs):
+    name = _resolve_name(name, app, app_name, application, kwargs)
     """Terminate an app by name: ``taskkill`` on Windows, PID-based
     SIGTERM/SIGKILL on Linux. Verified by checking the app is no longer
     running afterwards."""

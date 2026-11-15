@@ -225,6 +225,32 @@ class Planner:
         )
 
     @staticmethod
+    def _normalize_llm_args(tool, args):
+        """Map LLM arg aliases to schema names, unwrapping dict values."""
+        out = dict(args or {})
+        for key, value in list(out.items()):
+            if isinstance(value, dict):
+                for sub in ("app_name", "name", "app", "value", "target"):
+                    if sub in value and isinstance(value[sub], str):
+                        out[key] = value[sub]
+                        break
+                else:
+                    first = next((v for v in value.values() if isinstance(v, str)), None)
+                    if first is not None:
+                        out[key] = first
+        aliases = {
+            "app_name": "name", "app": "name", "application": "name",
+            "source": "src", "destination": "dst",
+            "source_path": "src", "destination_path": "dst",
+        }
+        for alias, canonical in aliases.items():
+            if alias in out and canonical not in out:
+                out[canonical] = out.pop(alias)
+            elif alias in out:
+                out.pop(alias, None)
+        return out
+
+    @staticmethod
     def _plan_from_llm_data(data, text):
         if not isinstance(data, dict):
             return None
@@ -246,7 +272,7 @@ class Planner:
             steps.append(
                 PlanStep(
                     tool=tool,
-                    args=dict(raw.get("args") or {}),
+                    args=Planner._normalize_llm_args(tool, dict(raw.get("args") or {})),
                     description=str(raw.get("description") or f"Run {tool}"),
                     verify=raw.get("verify"),
                 )
