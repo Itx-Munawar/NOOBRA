@@ -110,3 +110,19 @@ pyinstaller noobra.spec
 - Also raised `REQUEST_TIMEOUT` 30s -> 60s in `ai/provider.py`: Gemini
   timed out at 30s on the user's connection.
 - Pinned by `tests/test_app_alias.py` (5 new tests; 41 passed total).
+
+## Chrome opened but no search visible (2026-11-15)
+
+- User (Roman Urdu): "chrome opened but kuch search nhi kara".
+- Cause: `open_app` launched Chrome with subprocess, while
+  `search_youtube` used a *separate* headless Playwright browser.
+  The search ran invisibly; the user only saw the empty Chrome window.
+- Fix:
+  1. `tools/browser.py`: `_ensure()` now launches headed
+     (`headless=False`), falling back to headless only on display-less
+     machines (existing launch() retry).
+  2. `tools/applications.py`: Chrome now prefers the shared Playwright
+     browser (`_launch_chrome_via_playwright`, headed, channel=chrome),
+     falling back to subprocess on failure. Later searches reuse that
+     same visible window.
+- Pinned by `tests/test_browser_visible.py` (3 new tests; 44 passed total).

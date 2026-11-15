@@ -258,6 +258,43 @@ def is_app_running(name=None, app=None, app_name=None, application=None, **kwarg
     return _ok({"running": bool(pids), "pids": pids, "app": str(name)}, verified=True)
 
 
+def _launch_chrome_via_playwright():
+    """Launch Chrome through Playwright (headed) so searches reuse it.
+
+    This is the fix for 2026-11-15: ``open_app`` used to launch Chrome
+    with subprocess, while ``search_youtube`` used a *separate* headless
+    Playwright browser — the user saw an empty Chrome window and the
+    search happened invisibly. Launching Chrome via the shared
+    BrowserAgent means the next search navigates that same visible
+    window. Returns a result dict, or None to fall back to subprocess.
+    """
+    try:
+        from tools.browser import get_browser_agent
+    except Exception:
+        try:
+            from .browser import get_browser_agent  # type: ignore
+        except Exception:
+            return None
+    try:
+        agent = get_browser_agent()
+        if agent.is_launched:
+            return _ok({"app": "Google Chrome", "pid": None,
+                        "command": "playwright (already launched)",
+                        "via": "playwright"}, verified=True)
+        res = agent.launch(headless=False, use_chrome=True)
+        if res.get("success"):
+            return _ok({"app": "Google Chrome", "pid": None,
+                        "command": "playwright channel=chrome headed",
+                        "via": "playwright",
+                        "headless": res.get("result", {}).get("headless", False)},
+                       verified=True)
+        logger.debug("Playwright Chrome launch failed, falling back: %s", res.get("error"))
+        return None
+    except Exception as exc:
+        logger.debug("Playwright Chrome launch failed, falling back: %s", exc)
+        return None
+
+
 def launch_app(name=None, args=None, app=None, app_name=None, application=None, **kwargs):
     name = _resolve_name(name, app, app_name, application, kwargs)
     """Launch an app by canonical name (see ``APP_MAP``) or executable/path.
@@ -297,6 +334,14 @@ def launch_app(name=None, args=None, app=None, app_name=None, application=None, 
             return _ok({"app": str(name), "pid": proc.pid, "command": [cmd_name] + args},
                        verified=True)
         return _fail(f"unknown app: {name!r} (known: {sorted(APP_MAP)})")
+
+    # Chrome: prefer the shared Playwright browser (headed), so a later
+    # search_youtube / search_google navigates THIS visible window instead
+    # of a separate hidden one. Fall back to subprocess on failure.
+    if key == "chrome":
+        via_playwright = _launch_chrome_via_playwright()
+        if via_playwright is not None:
+            return via_playwright
 
     if sys.platform == "win32":
         if key == "settings" or str(entry.get("windows_exe", "")).endswith(":"):

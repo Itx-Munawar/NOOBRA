@@ -132,10 +132,16 @@ class BrowserAgent:
                     "tabs": len(self._pages)}, verified=True)
 
     def _ensure(self):
-        """Auto-launch (headless, for background use) if needed."""
+        """Auto-launch if needed — headed, so the user can SEE the search.
+
+        This was the 2026-11-15 bug: searches auto-launched headless, so
+        YouTube/Google ran in a hidden browser while the user stared at
+        the empty Chrome window opened by open_app. Headed first, with
+        launch() falling back to headless on a display-less machine.
+        """
         if self.is_launched:
             return None
-        res = self.launch(headless=True, use_chrome=True)
+        res = self.launch(headless=False, use_chrome=True)
         return None if res["success"] else res
 
     # -- navigation --------------------------------------------------------
